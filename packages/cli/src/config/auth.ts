@@ -42,5 +42,11 @@ export function validateAuthMethod(authMethod: string): string | null {
     return null;
   }
 
+  if (authMethod === AuthType.OLLAMA || authMethod === AuthType.LM_STUDIO) {
+    // Local models don't require API keys
+    // Environment variables TAUCLI_PROVIDER_BASE_URL and TAUCLI_MODEL are optional
+    return null;
+  }
+
   return 'Invalid auth method selected.';
 }

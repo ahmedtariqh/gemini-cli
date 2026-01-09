@@ -74,6 +74,16 @@ export function AuthDialog({
       value: AuthType.USE_VERTEX_AI,
       key: AuthType.USE_VERTEX_AI,
     },
+    {
+      label: 'Ollama (Local Model)',
+      value: AuthType.OLLAMA,
+      key: AuthType.OLLAMA,
+    },
+    {
+      label: 'LM Studio (Local Model)',
+      value: AuthType.LM_STUDIO,
+      key: AuthType.LM_STUDIO,
+    },
   ];
 
   if (settings.merged.security?.auth?.enforcedType) {
@@ -139,6 +149,12 @@ export function AuthDialog({
             setAuthState(AuthState.AwaitingApiKeyInput);
             return;
           }
+        }
+
+        if (authType === AuthType.OLLAMA || authType === AuthType.LM_STUDIO) {
+          // No additional input needed for local models
+          setAuthState(AuthState.Unauthenticated);
+          return;
         }
       }
       setAuthState(AuthState.Unauthenticated);

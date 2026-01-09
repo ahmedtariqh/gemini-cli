@@ -579,14 +579,12 @@ export class GeminiChat {
       lastConfig = config;
       lastContentsToUse = contentsToUse;
 
-      return this.config.getContentGenerator().generateContentStream(
-        {
-          model: modelToUse,
-          contents: contentsToUse,
-          config,
-        },
-        prompt_id,
-      );
+      return this.config.getModelProvider().streamContent({
+        model: modelToUse,
+        contents: contentsToUse,
+        config,
+        promptId: prompt_id,
+      });
     };
 
     const onPersistent429Callback = async (

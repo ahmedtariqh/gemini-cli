@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Text, Box } from 'ink';
 import { MarkdownDisplay } from '../../utils/MarkdownDisplay.js';
 import { theme } from '../../semantic-colors.js';
@@ -30,6 +30,26 @@ export const GeminiMessage: React.FC<GeminiMessageProps> = ({
   const prefixWidth = prefix.length;
 
   const isAlternateBuffer = useAlternateBuffer();
+
+  const startTimeRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (isPending && !startTimeRef.current) {
+      startTimeRef.current = Date.now();
+    } else if (!isPending) {
+      startTimeRef.current = null;
+    }
+  }, [isPending]);
+
+  const getSpeed = () => {
+    if (!isPending || !startTimeRef.current || text.length === 0) return 0;
+    const elapsed = (Date.now() - startTimeRef.current) / 1000;
+    if (elapsed < 1) return 0;
+    return Math.round((text.length / 4) / elapsed);
+  };
+
+  const speed = getSpeed();
+
   return (
     <Box flexDirection="row">
       <Box width={prefixWidth}>
@@ -47,6 +67,9 @@ export const GeminiMessage: React.FC<GeminiMessageProps> = ({
           terminalWidth={terminalWidth}
           renderMarkdown={renderMarkdown}
         />
+        {isPending && speed > 0 && (
+          <Text color="gray"> {speed} t/s</Text>
+        )}
       </Box>
     </Box>
   );

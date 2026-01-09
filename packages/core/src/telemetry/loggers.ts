@@ -74,6 +74,7 @@ import { bufferTelemetryEvent } from './sdk.js';
 import type { UiEvent } from './uiTelemetry.js';
 import { uiTelemetryService } from './uiTelemetry.js';
 import { ClearcutLogger } from './clearcut-logger/clearcut-logger.js';
+import { appendToSessionLog } from './session-file-logger.js';
 
 export function logCliConfiguration(
   config: Config,
@@ -100,7 +101,11 @@ export function logUserPrompt(config: Config, event: UserPromptEvent): void {
       attributes: event.toOpenTelemetryAttributes(config),
     };
     logger.emit(logRecord);
+
   });
+  if (event.prompt) {
+     appendToSessionLog(config.getSessionId(), `USER: ${event.prompt}`);
+  }
 }
 
 export function logToolCall(config: Config, event: ToolCallEvent): void {
@@ -287,6 +292,10 @@ export function logApiResponse(config: Config, event: ApiResponseEvent): void {
       });
     }
   });
+
+  if (event.response_text) {
+     appendToSessionLog(config.getSessionId(), `MODEL (${event.model}): ${event.response_text}`);
+  }
 }
 
 export function logLoopDetected(

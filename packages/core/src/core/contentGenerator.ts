@@ -52,6 +52,8 @@ export enum AuthType {
   USE_VERTEX_AI = 'vertex-ai',
   LEGACY_CLOUD_SHELL = 'cloud-shell',
   COMPUTE_ADC = 'compute-default-credentials',
+  OLLAMA = 'ollama',
+  LM_STUDIO = 'lm-studio',
 }
 
 export type ContentGeneratorConfig = {
@@ -59,6 +61,8 @@ export type ContentGeneratorConfig = {
   vertexai?: boolean;
   authType?: AuthType;
   proxy?: string;
+  baseUrl?: string;
+  modelName?: string;
 };
 
 export async function createContentGeneratorConfig(
@@ -66,7 +70,10 @@ export async function createContentGeneratorConfig(
   authType: AuthType | undefined,
 ): Promise<ContentGeneratorConfig> {
   const geminiApiKey =
-    process.env['GEMINI_API_KEY'] || (await loadApiKey()) || undefined;
+    process.env['TAUCLI_API_KEY'] ||
+    process.env['GEMINI_API_KEY'] ||
+    (await loadApiKey()) ||
+    undefined;
   const googleApiKey = process.env['GOOGLE_API_KEY'] || undefined;
   const googleCloudProject =
     process.env['GOOGLE_CLOUD_PROJECT'] ||
@@ -77,6 +84,8 @@ export async function createContentGeneratorConfig(
   const contentGeneratorConfig: ContentGeneratorConfig = {
     authType,
     proxy: config?.getProxy(),
+    baseUrl: process.env['TAUCLI_PROVIDER_BASE_URL'] || process.env['OLLAMA_HOST'] || undefined,
+    modelName: process.env['TAUCLI_MODEL'] || config.getModel(),
   };
 
   // If we are using Google auth or we are in Cloud Shell, there is nothing else to validate for now
@@ -156,6 +165,38 @@ export async function createContentGenerator(
           gcConfig,
           sessionId,
         ),
+        gcConfig,
+      );
+    }
+
+    if (
+      config.authType === AuthType.OLLAMA ||
+      config.authType === AuthType.LM_STUDIO
+    ) {
+      return new LoggingContentGenerator(
+        {
+          generateContent: async () => {
+            throw new Error('Use ModelProvider');
+          },
+          generateContentStream: async () => {
+            throw new Error('Use ModelProvider');
+          },
+          async embedContent() {
+            throw new Error('Not supported');
+          },
+          async countTokens(req) {
+            let text = '';
+            if (req.contents) {
+                // req.contents is ContentListUnion, which can be an array of Content
+                if (Array.isArray(req.contents)) {
+                    text = req.contents
+                        .map((c: any) => c.parts.map((p: any) => p.text).join(''))
+                        .join('');
+                }
+            }
+            return { totalTokens: Math.ceil(text.length / 4) };
+          },
+        },
         gcConfig,
       );
     }

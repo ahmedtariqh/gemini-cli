@@ -16,6 +16,9 @@ import {
   createContentGenerator,
   createContentGeneratorConfig,
 } from '../core/contentGenerator.js';
+import type { ModelProvider } from '../providers/types.js';
+import { GeminiProvider } from '../providers/gemini.js';
+import { OpenAICompatibleProvider } from '../providers/openai_compatible.js';
 import { PromptRegistry } from '../prompts/prompt-registry.js';
 import { ResourceRegistry } from '../resources/resource-registry.js';
 import { ToolRegistry } from '../tools/tool-registry.js';
@@ -377,6 +380,7 @@ export class Config {
   private fileSystemService: FileSystemService;
   private contentGeneratorConfig!: ContentGeneratorConfig;
   private contentGenerator!: ContentGenerator;
+  private modelProvider!: ModelProvider;
   readonly modelConfigService: ModelConfigService;
   private readonly embeddingModel: string;
   private readonly sandbox: SandboxConfig | undefined;
@@ -779,6 +783,10 @@ export class Config {
     return this.contentGenerator;
   }
 
+  getModelProvider(): ModelProvider {
+    return this.modelProvider;
+  }
+
   async refreshAuth(authMethod: AuthType) {
     // Reset availability service when switching auth
     this.modelAvailabilityService.reset();
@@ -805,6 +813,18 @@ export class Config {
       this,
       this.getSessionId(),
     );
+    
+    if (authMethod === AuthType.OLLAMA || authMethod === AuthType.LM_STUDIO) {
+      const defaultBaseUrl = authMethod === AuthType.OLLAMA ? 'http://localhost:11434/v1' : 'http://localhost:1234/v1';
+      this.modelProvider = new OpenAICompatibleProvider(
+        newContentGeneratorConfig.baseUrl || defaultBaseUrl, 
+        newContentGeneratorConfig.modelName || 'llama3',
+        newContentGeneratorConfig.apiKey
+      );
+    } else {
+      this.modelProvider = new GeminiProvider(newContentGeneratorConfig, this.usageStatisticsEnabled);
+    }
+    
     // Only assign to instance properties after successful initialization
     this.contentGeneratorConfig = newContentGeneratorConfig;
 
